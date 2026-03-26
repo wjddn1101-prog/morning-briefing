@@ -5,12 +5,12 @@ const http = require('http');
 const axios = require('axios');
 
 const PORT = 3000;
-const REDIRECT_URI = `http://localhost:${PORT}/callback`;
+const REDIRECT_URI = `http://localhost:${PORT}/auth/kakao/callback`;
 const CLIENT_ID = process.env.KAKAO_REST_API_KEY;
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${PORT}`);
-  if (url.pathname !== '/callback') return;
+  if (url.pathname !== '/auth/kakao/callback') return;
 
   const code = url.searchParams.get('code');
   if (!code) {

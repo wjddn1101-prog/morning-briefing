@@ -1,82 +1,71 @@
 const axios = require('axios');
 
-const TMAP_KEY = process.env.TMAP_API_KEY;
+const NAVER_CLIENT_ID = process.env.NAVER_CLIENT_ID;
+const NAVER_CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET;
 
-// 주소 → 좌표 변환
+// 네이버 지오코딩 (주소 → 좌표)
 async function geocode(address) {
-  const res = await axios.get('https://apis.openapi.sk.com/tmap/geo/fullAddrGeo', {
-    params: {
-      version: 1,
-      addressFlag: 'F00',
-      fullAddr: address,
-      appKey: TMAP_KEY,
+  const res = await axios.get('https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode', {
+    params: { query: address },
+    headers: {
+      'X-NCP-APIGW-API-KEY-ID': NAVER_CLIENT_ID,
+      'X-NCP-APIGW-API-KEY': NAVER_CLIENT_SECRET,
     },
   });
 
-  const result = res.data?.coordinateInfo?.coordinate?.[0];
-  if (!result) throw new Error(`주소 변환 실패: ${address}`);
+  const addr = res.data?.addresses?.[0];
+  if (!addr) throw new Error(`주소 변환 실패: ${address}`);
 
-  return {
-    lon: parseFloat(result.lon || result.newLon),
-    lat: parseFloat(result.lat || result.newLat),
-  };
+  return { lon: parseFloat(addr.x), lat: parseFloat(addr.y) };
 }
 
-// 경로 조회 (소요시간, 거리, 사고·공사구간 포함)
+// 네이버 길찾기 (Directions 5)
 async function getRoute(originAddr, destAddr) {
   const [origin, dest] = await Promise.all([
     geocode(originAddr),
     geocode(destAddr),
   ]);
 
-  const res = await axios.post(
-    'https://apis.openapi.sk.com/tmap/routes?version=1',
-    {
-      startX: origin.lon,
-      startY: origin.lat,
-      endX: dest.lon,
-      endY: dest.lat,
-      reqCoordType: 'WGS84GEO',
-      resCoordType: 'WGS84GEO',
-      trafficInfo: 'Y',
+  const res = await axios.get('https://naveropenapi.apigw.ntruss.com/map-direction/v1/driving', {
+    params: {
+      start: `${origin.lon},${origin.lat}`,
+      goal: `${dest.lon},${dest.lat}`,
+      option: 'trafast',
     },
-    {
-      headers: {
-        appKey: TMAP_KEY,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
+    headers: {
+      'X-NCP-APIGW-API-KEY-ID': NAVER_CLIENT_ID,
+      'X-NCP-APIGW-API-KEY': NAVER_CLIENT_SECRET,
+    },
+  });
 
-  const feature = res.data?.features?.[0]?.properties;
-  if (!feature) throw new Error('경로 조회 실패');
+  const route = res.data?.route?.trafast?.[0];
+  if (!route) throw new Error('경로 조회 실패');
 
-  const totalTime = Math.round(feature.totalTime / 60); // 분
-  const totalDistance = (feature.totalDistance / 1000).toFixed(1); // km
-  const totalFare = feature.totalFare || 0;
+  const summary = route.summary;
+  const totalTime = Math.round(summary.duration / 60000); // ms → 분
+  const totalDistance = (summary.distance / 1000).toFixed(1); // m → km
+  const tollFare = summary.tollFare || 0;
+  const fuelPrice = summary.fuelPrice || 0;
 
-  // 사고·공사 구간 추출
+  // 사고·공사 구간 추출 (guide 정보에서)
   const incidents = [];
-  const features = res.data?.features || [];
-  for (const f of features) {
-    const props = f.properties;
-    if (props.description) {
-      const desc = props.description;
-      if (desc.includes('사고') || desc.includes('공사') || desc.includes('통제')) {
-        incidents.push(desc);
-      }
+  const sections = route.section || [];
+  for (const sec of sections) {
+    if (sec.congestion === 0) {
+      incidents.push(`${sec.name || '구간'} 정체`);
     }
   }
 
-  // 평균 대비 지연 여부 (totalTime 기준 30분 이상이면 지연)
-  const normalTime = 25; // 정상 소요시간 (분) - 약 25분 예상
+  // 평소 소요시간 기준 지연 판단 (약 25분 기준)
+  const normalTime = 25;
   const isDelayed = totalTime > normalTime + 10;
   const delayMin = Math.max(0, totalTime - normalTime);
 
   return {
     totalTime,
     totalDistance,
-    totalFare,
+    tollFare,
+    fuelPrice,
     isDelayed,
     delayMin,
     incidents: [...new Set(incidents)].slice(0, 3),
@@ -91,7 +80,8 @@ function getRecommendedDeparture(totalTime, targetArrival = '08:30') {
   const arrivalDate = new Date();
   arrivalDate.setHours(h, m, 0, 0);
 
-  const departureDate = new Date(arrivalDate.getTime() - totalTime * 60 * 1000 - 5 * 60 * 1000); // 여유 5분
+  const buffer = 5; // 여유 5분
+  const departureDate = new Date(arrivalDate.getTime() - (totalTime + buffer) * 60 * 1000);
   const dh = departureDate.getHours().toString().padStart(2, '0');
   const dm = departureDate.getMinutes().toString().padStart(2, '0');
   return `${dh}:${dm}`;

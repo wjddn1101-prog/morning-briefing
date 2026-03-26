@@ -22,8 +22,8 @@ jobs:
       - name: 브리핑 실행
         env:
           TMAP_API_KEY: ${{ secrets.TMAP_API_KEY }}
-          KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
-          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           ORIGIN_ADDRESS: 부산광역시 부산진구 동평로 176
           DEST_ADDRESS: 경남 김해시 경원로 73번길 15
