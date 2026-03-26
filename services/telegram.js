@@ -47,14 +47,17 @@ async function sendTelegramMessage(briefing) {
   }
 
   const finalText = text.filter(line => line !== null && line !== undefined).join('\n');
+  const chatIds = CHAT_ID.split(',').map(id => id.trim()).filter(id => id);
 
   try {
-    await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      chat_id: CHAT_ID,
-      text: finalText,
-      parse_mode: 'Markdown',
-    });
-    console.log('텔레그램 메시지 전송 성공');
+    for (const id of chatIds) {
+      await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+        chat_id: id,
+        text: finalText,
+        parse_mode: 'Markdown',
+      });
+    }
+    console.log(`텔레그램 메시지 전송 성공 (${chatIds.length}명)`);
     return true;
   } catch (err) {
     console.error('텔레그램 전송 실패:', err.response?.data || err.message);
