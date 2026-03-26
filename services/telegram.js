@@ -34,13 +34,24 @@ async function sendTelegramMessage(briefing) {
     `🌤 날씨: ${weather.weatherDesc} ${weather.temp}`,
     `💧 강수확률: ${weather.rainProb} | 습도: ${weather.humidity}`,
     `💨 바람: ${weather.windSpeed}`,
-    weather.needUmbrella ? '\n☂️ *우산 챙기세요\\!*' : '',
-  ].filter(Boolean).join('\n');
+    `😷 미세먼지: ${weather.dust} (PM10: ${weather.pm10}, PM2.5: ${weather.pm25})`,
+    '',
+    weather.outfit,
+    ''
+  ];
+
+  if (briefing.events && briefing.events.length > 0) {
+    text.push(`📅 *오늘의 중요 일정*`);
+    briefing.events.forEach(e => text.push(`• ${e}`));
+    text.push('');
+  }
+
+  const finalText = text.filter(line => line !== null && line !== undefined).join('\n');
 
   try {
     await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       chat_id: CHAT_ID,
-      text,
+      text: finalText,
       parse_mode: 'Markdown',
     });
     console.log('텔레그램 메시지 전송 성공');

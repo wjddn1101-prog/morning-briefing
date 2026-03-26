@@ -2,6 +2,7 @@ const { getRoute, getRecommendedDeparture } = require('./tmap');
 const { getWeather } = require('./weather');
 const { sendKakaoMessage } = require('./kakao');
 const { sendPushNotification, getVoiceScript } = require('./notification');
+const { getTodayEvents } = require('./calendar');
 
 const ORIGIN = process.env.ORIGIN_ADDRESS || '부산광역시 부산진구 동평로 176';
 const DEST = process.env.DEST_ADDRESS || '경남 김해시 경원로 73번길 15';
@@ -15,9 +16,10 @@ async function generateBriefing() {
     minute: '2-digit',
   });
 
-  const [route, weather] = await Promise.all([
+  const [route, weather, events] = await Promise.all([
     getRoute(ORIGIN, DEST),
     getWeather(),
+    getTodayEvents()
   ]);
 
   const recommendedDeparture = getRecommendedDeparture(route.totalTime, '08:30');
@@ -25,6 +27,7 @@ async function generateBriefing() {
   const briefing = {
     route,
     weather,
+    events,
     recommendedDeparture,
     generatedAt,
     voiceScript: '',
@@ -36,13 +39,19 @@ async function generateBriefing() {
     소요시간: `${route.totalTime}분`,
     지연: route.isDelayed ? `${route.delayMin}분 지연` : '정상',
     날씨: weather.weatherDesc,
+    미세먼지: weather.dust,
+    일정수: events.length,
     추천출발: recommendedDeparture,
   });
 
-  // 카카오톡 + 푸시 알림 동시 발송
+  // 카카오톡 + 푸시 알림 + 텔레그램은 별도 로직?
+  // 기존 코드엔 텔레그램 발송이 누락되어 있으니 추가
+  const { sendTelegramMessage } = require('./telegram');
+
   await Promise.all([
-    sendKakaoMessage(briefing),
-    sendPushNotification(briefing),
+    sendKakaoMessage(briefing).catch(e => console.error('Kakao Error', e.message)),
+    sendPushNotification(briefing).catch(e => console.error('Push Error', e.message)),
+    sendTelegramMessage(briefing).catch(e => console.error('Telegram Error', e.message))
   ]);
 
   return briefing;

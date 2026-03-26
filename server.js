@@ -66,6 +66,20 @@ app.get('/api/latest', (req, res) => {
   res.json({ success: true, briefing: lastBriefing });
 });
 
+// 잠금화면 위젯용 요약 데이터 (Scriptable 연동용)
+app.get('/api/widget', (req, res) => {
+  if (!lastBriefing) {
+    return res.json({ text1: '브리핑 대기중', text2: '서버에 데이터가 없습니다.' });
+  }
+  const b = lastBriefing;
+  const isDelayed = b.route.isDelayed ? `(+${b.route.delayMin})` : '';
+  const t1 = `🚗 ${b.route.totalTime}분${isDelayed} · 출발 ${b.recommendedDeparture}`;
+  const dustStatus = b.weather.dust.includes('나쁨') ? '나쁨😷' : '보통';
+  const t2 = `🌤 ${parseInt(b.weather.temp)}°C · 풍속 ${parseInt(b.weather.windSpeed)} · 미먼 ${dustStatus}`;
+  
+  res.json({ text1: t1, text2: t2 });
+});
+
 // 음성 스크립트 (iOS 단축어 TTS용)
 app.get('/api/voice', (req, res) => {
   if (!lastBriefing) return res.type('text').send('아직 브리핑이 없습니다.');
@@ -85,10 +99,17 @@ app.get('/api/status', (req, res) => {
 
 // ─── 스케줄러 ──────────────────────────────────────
 const schedule = process.env.CRON_SCHEDULE || '30 7 * * 1-5';
+const { isHoliday } = require('./services/holiday');
+
 cron.schedule(
   schedule,
   async () => {
-    console.log(`[자동 스케줄] 브리핑 시작`);
+    if (isHoliday()) {
+      console.log(`[자동 스케줄] 오늘은 공휴일이므로 브리핑 자동 발송을 건너뜁니다.`);
+      return;
+    }
+
+    console.log(`[자동 스케줄] 평일 브리핑 시작`);
     // 토큰 자동 갱신 시도
     if (process.env.KAKAO_REFRESH_TOKEN) await refreshAccessToken();
     try {

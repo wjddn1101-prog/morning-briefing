@@ -1,0 +1,41 @@
+name: Morning Briefing Cron
+
+on:
+  schedule:
+    # 매주 일요일~목요일 22:30 UTC = 월요일~금요일 07:30 KST
+    - cron: '30 22 * * 0-4'
+  workflow_dispatch: # 수동 실행 버튼 활성화
+
+permissions:
+  contents: write # GitHub Pages 강제 푸시를 위한 권한
+
+jobs:
+  run-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm ci || npm install
+
+      - name: Run Briefing Script
+        env:
+          TMAP_APP_KEY: ${{ secrets.TMAP_APP_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          ICAL_URL: ${{ secrets.ICAL_URL }}
+        run: node scripts/run-briefing.js
+
+      - name: Deploy to GitHub Pages (For Widget)
+        # 스크립트가 성공적으로 public/widget.json을 만들었다면 gh-pages 브랜치에 배포
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+          commit_message: "chore: update daily widget data"

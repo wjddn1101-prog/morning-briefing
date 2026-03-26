@@ -1,36 +1,29 @@
 require('dotenv').config();
-const { getRoute, getRecommendedDeparture } = require('../services/tmap');
-const { getWeather } = require('../services/weather');
-const { getVoiceScript, sendPushNotification } = require('../services/notification');
-const { sendTelegramMessage } = require('../services/telegram');
-
-const ORIGIN = process.env.ORIGIN_ADDRESS || '부산광역시 부산진구 동평로 176';
-const DEST = process.env.DEST_ADDRESS || '경남 김해시 경원로 73번길 15';
+const fs = require('fs');
+const path = require('path');
+const { generateBriefing } = require('../services/briefing');
+const { isHoliday } = require('../services/holiday');
 
 async function main() {
-  console.log(`[${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}] 브리핑 시작`);
-
-  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
-  const generatedAt = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-
-  const [route, weather] = await Promise.all([
-    getRoute(ORIGIN, DEST),
-    getWeather(),
-  ]);
-
-  const recommendedDeparture = getRecommendedDeparture(route.totalTime, '08:30');
-  const briefing = { route, weather, recommendedDeparture, generatedAt };
-  briefing.voiceScript = getVoiceScript(briefing);
-
-  console.log(`소요: ${route.totalTime}분 | 날씨: ${weather.weatherDesc} | 추천출발: ${recommendedDeparture}`);
-
-  // 텔레그램 + 푸시 동시 전송
-  await Promise.all([
-    sendTelegramMessage(briefing),
-    sendPushNotification(briefing),
-  ]);
-
-  console.log('브리핑 완료!');
+  if (isHoliday()) {
+    console.log(`[GitHub Actions] 오늘은 공휴일이므로 브리핑을 건너뜁니다.`);
+    process.exit(0);
+  }
+  
+  console.log(`[GitHub Actions] 평일 브리핑 시작`);
+  const b = await generateBriefing();
+  
+  // 위젯용 정적 데이터 생성 (GitHub Pages 배포용)
+  const isDelayed = b.route.isDelayed ? `(+${b.route.delayMin})` : '';
+  const t1 = `🚗 ${b.route.totalTime}분${isDelayed} · 출발 ${b.recommendedDeparture}`;
+  const dustStatus = b.weather.dust.includes('나쁨') ? '나쁨😷' : '보통';
+  const t2 = `🌤 ${parseInt(b.weather.temp)}°C · 풍속 ${parseInt(b.weather.windSpeed)} · 미먼 ${dustStatus}`;
+  
+  const widgetData = { text1: t1, text2: t2 };
+  
+  fs.writeFileSync(path.join(__dirname, '../public/widget.json'), JSON.stringify(widgetData));
+  console.log(`[GitHub Actions] 브리핑 완료 및 위젯 데이터 저장 성공`);
+  process.exit(0);
 }
 
 main().catch(err => {
