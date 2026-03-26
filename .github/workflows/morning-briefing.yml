@@ -1,0 +1,30 @@
+name: 아침 출근 브리핑
+
+on:
+  schedule:
+    # 평일 오전 7:30 KST = 22:30 UTC (전날)
+    - cron: '30 22 * * 0-4'
+  workflow_dispatch: # 수동 실행 버튼
+
+jobs:
+  briefing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 패키지 설치
+        run: npm install
+
+      - name: 브리핑 실행
+        env:
+          TMAP_API_KEY: ${{ secrets.TMAP_API_KEY }}
+          KAKAO_REST_API_KEY: ${{ secrets.KAKAO_REST_API_KEY }}
+          KAKAO_REFRESH_TOKEN: ${{ secrets.KAKAO_REFRESH_TOKEN }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          ORIGIN_ADDRESS: 부산광역시 부산진구 동평로 176
+          DEST_ADDRESS: 경남 김해시 경원로 73번길 15
+        run: node scripts/run-briefing.js
