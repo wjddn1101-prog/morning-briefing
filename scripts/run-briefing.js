@@ -22,7 +22,8 @@ async function main() {
   const widgetData = { text1: t1, text2: t2 };
   
   fs.writeFileSync(path.join(__dirname, '../public/widget.json'), JSON.stringify(widgetData));
-  console.log(`[GitHub Actions] 브리핑 완료 및 위젯 데이터 저장 성공`);
+  fs.writeFileSync(path.join(__dirname, '../public/voice.txt'), b.voiceScript);
+  console.log(`[GitHub Actions] 브리핑 완료 및 위젯/음성 데이터 저장 성공`);
   process.exit(0);
 }
 
