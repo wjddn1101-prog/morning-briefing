@@ -2,9 +2,13 @@ name: 아침 출근 브리핑
 
 on:
   schedule:
-    # 평일 오전 7:30 KST = 22:30 UTC (전날)
+    # 평일(월~금) 오전 7:30 KST = 22:30 UTC (전날 일~목)
+    # 공휴일 체크는 run-briefing.js 내부에서 처리
     - cron: '30 22 * * 0-4'
-  workflow_dispatch: # 수동 실행 버튼
+  workflow_dispatch: # 수동 실행 / 외부 cron 트리거용
+
+permissions:
+  contents: write
 
 jobs:
   briefing:
@@ -17,14 +21,22 @@ jobs:
           node-version: '20'
 
       - name: 패키지 설치
-        run: npm install
+        run: npm ci || npm install
 
       - name: 브리핑 실행
         env:
-          TMAP_API_KEY: ${{ secrets.TMAP_API_KEY }}
+          TMAP_APP_KEY: ${{ secrets.TMAP_APP_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          ICAL_URL: ${{ secrets.ICAL_URL }}
           ORIGIN_ADDRESS: 부산광역시 부산진구 동평로 176
           DEST_ADDRESS: 경남 김해시 경원로 73번길 15
         run: node scripts/run-briefing.js
+
+      - name: GitHub Pages 배포 (위젯 데이터)
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+          commit_message: "chore: update daily widget data"
