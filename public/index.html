@@ -79,9 +79,12 @@
 
     .status-bar {
       text-align: center;
-      font-size: 0.8rem;
-      opacity: 0.4;
+      font-size: 0.82rem;
+      opacity: 0.6;
       margin-top: 16px;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 10px;
     }
     .loading { text-align: center; opacity: 0.6; padding: 40px 0; }
     .spinner {
@@ -258,7 +261,7 @@
         weather.needUmbrella ? 'block' : 'none';
 
       document.getElementById('status-bar').textContent =
-        `마지막 업데이트: ${generatedAt} · ${route.totalDistance}km`;
+        `🕐 마지막 업데이트: ${generatedAt} · 거리 ${route.totalDistance}km`;
     }
 
     // 페이지 로드 시 기존 브리핑 표시

@@ -11,7 +11,9 @@ async function generateBriefing() {
   console.log(`[${new Date().toLocaleString('ko-KR')}] 브리핑 생성 시작...`);
 
   const now = new Date();
-  const generatedAt = now.toLocaleTimeString('ko-KR', {
+  const generatedAt = now.toLocaleString('ko-KR', {
+    month: 'long',
+    day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
   });
