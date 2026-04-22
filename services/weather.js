@@ -56,7 +56,7 @@ async function getWeather() {
           longitude: LON,
           hourly: 'temperature_2m,precipitation_probability,weathercode,windspeed_10m,relativehumidity_2m',
           timezone: 'Asia/Seoul',
-          forecast_days: 1,
+          forecast_days: 2,
         },
       }),
       axios.get('https://air-quality-api.open-meteo.com/v1/air-quality', {
@@ -65,7 +65,7 @@ async function getWeather() {
           longitude: LON,
           hourly: 'pm10,pm2_5',
           timezone: 'Asia/Seoul',
-          forecast_days: 1,
+          forecast_days: 2,
         }
       })
     ]).catch(err => { throw err; });
@@ -73,29 +73,41 @@ async function getWeather() {
     const data = weatherRes.data.hourly;
     const airData = airRes.data.hourly;
 
-    // 오전 8시 인덱스 (hourly 배열에서 8번째)
-    const idx = 8;
+    // 오전 8시에 해당하는 hourly 인덱스를 동적으로 검색 (배열 bounds 검증 포함)
+    const targetHour = 8;
+    const today = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Seoul' });
+    let idx = Array.isArray(data.time)
+      ? data.time.findIndex(t => t.startsWith(today) && new Date(t).getHours() === targetHour)
+      : -1;
+    if (idx < 0 || idx >= (data.weathercode?.length || 0)) {
+      idx = 0;
+    }
 
-    const code = data.weathercode[idx];
-    const temp = data.temperature_2m[idx];
-    const rainProb = data.precipitation_probability[idx];
-    const windSpeed = data.windspeed_10m[idx];
-    const humidity = data.relativehumidity_2m[idx];
+    const pick = (arr) =>
+      Array.isArray(arr) && arr[idx] != null ? arr[idx] : null;
 
-    const pm10 = airData.pm10 ? airData.pm10[idx] : 0;
-    const pm25 = airData.pm2_5 ? airData.pm2_5[idx] : 0;
+    const code = pick(data.weathercode);
+    const temp = pick(data.temperature_2m);
+    const rainProb = pick(data.precipitation_probability);
+    const windSpeed = pick(data.windspeed_10m);
+    const humidity = pick(data.relativehumidity_2m);
 
-    const weatherDesc = WMO_CODES[code] || '맑음';
-    const needUmbrella = rainProb >= 40 || [51,53,55,61,63,65,80,81,82].includes(code);
+    const pm10 = pick(airData.pm10) ?? 0;
+    const pm25 = pick(airData.pm2_5) ?? 0;
+
+    const weatherDesc = code != null && WMO_CODES[code] ? WMO_CODES[code] : '정보 없음';
+    const needUmbrella = (rainProb != null && rainProb >= 40) || [51,53,55,61,63,65,80,81,82].includes(code);
     const dust = getDustLevel(pm10, pm25);
-    const outfit = getOutfitRecommendation(temp, needUmbrella, dust.bad);
+    const outfit = getOutfitRecommendation(temp ?? 20, needUmbrella, dust.bad);
+
+    console.log(`[weather] idx=${idx} code=${code} desc=${weatherDesc} temp=${temp}°C rain=${rainProb}% wind=${windSpeed} pm10=${pm10} pm25=${pm25}`);
 
     return {
       weatherDesc,
-      temp: `${Math.round(temp)}°C`,
-      rainProb: `${rainProb}%`,
-      windSpeed: `${windSpeed}km/h`,
-      humidity: `${humidity}%`,
+      temp: temp != null ? `${Math.round(temp)}°C` : '-',
+      rainProb: rainProb != null ? `${rainProb}%` : '-',
+      windSpeed: windSpeed != null ? `${windSpeed}km/h` : '-',
+      humidity: humidity != null ? `${humidity}%` : '-',
       needUmbrella,
       dust: dust.level,
       pm10,
