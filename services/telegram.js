@@ -9,7 +9,7 @@ async function sendTelegramMessage(briefing) {
     return false;
   }
 
-  const { route, weather, recommendedDeparture, arrivalScenarios, targetArrival, generatedAt } = briefing;
+  const { route, weather, recommendedDeparture, arrivalAt0800, generatedAt } = briefing;
 
   const delayText = route.isDelayed
     ? `⚠️ 평소보다 ${route.delayMin}분 지연`
@@ -20,20 +20,14 @@ async function sendTelegramMessage(briefing) {
       ? route.incidents.map((i) => `• ${i}`).join('\n')
       : '• 특이사항 없음';
 
-  const scenarioText = (arrivalScenarios || [])
-    .map(s => `• ${s.departure} 출발 → ${s.arrival} 도착`)
-    .join('\n');
-
   const text = [
     `🌅 *아침 출근 브리핑* (${generatedAt})`,
     '',
     `📍 동평로 176 → 경원로 73번길`,
     `⏱ 예상 소요: *${route.totalTime}분* (${route.totalDistance}km)`,
     `📊 교통: ${delayText}`,
-    `🚀 추천 출발: *${recommendedDeparture}* (${targetArrival || '08:00'} 도착)`,
-    '',
-    `⏰ *출발 시간대별 도착 예측*`,
-    scenarioText,
+    `🚀 추천 출발: *${recommendedDeparture}* (08:00 도착 기준)`,
+    `⏰ 08:00 출발 시 도착: *${arrivalAt0800}*`,
     '',
     `🚧 *사고·공사 구간*`,
     incidentText,

@@ -109,17 +109,14 @@ function getRecommendedDeparture(totalTime, targetArrival = '08:00') {
   return `${dh}:${dm}`;
 }
 
-// 출발 시간대별 도착 예측 시나리오
-function getArrivalScenarios(totalTime, departures = ['07:00', '07:15', '07:30', '07:45', '08:00']) {
-  return departures.map(dep => {
-    const [h, m] = dep.split(':').map(Number);
-    const depDate = new Date();
-    depDate.setHours(h, m, 0, 0);
-    const arrDate = new Date(depDate.getTime() + totalTime * 60 * 1000);
-    const ah = arrDate.getHours().toString().padStart(2, '0');
-    const am = arrDate.getMinutes().toString().padStart(2, '0');
-    return { departure: dep, arrival: `${ah}:${am}` };
-  });
+// 08:00 출발 시 도착 시각 계산
+function getArrivalAt0800(totalTime) {
+  const depDate = new Date();
+  depDate.setHours(8, 0, 0, 0);
+  const arrDate = new Date(depDate.getTime() + totalTime * 60 * 1000);
+  const ah = arrDate.getHours().toString().padStart(2, '0');
+  const am = arrDate.getMinutes().toString().padStart(2, '0');
+  return `${ah}:${am}`;
 }
 
-module.exports = { getRoute, getRecommendedDeparture, getArrivalScenarios };
+module.exports = { getRoute, getRecommendedDeparture, getArrivalAt0800 };

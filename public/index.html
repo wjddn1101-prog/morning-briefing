@@ -130,11 +130,8 @@
         <div id="target-arrival-label" style="font-size:0.8rem; opacity:0.5; margin-top:4px">8시 도착 기준</div>
       </div>
 
-      <!-- 출발 시간대별 도착 예측 -->
-      <div class="card" id="scenarios-card">
-        <div class="card-title">⏰ 출발 시간대별 도착 예측</div>
-        <ul class="incident-list" id="scenarios-list"></ul>
-      </div>
+      <!-- 08:00 출발 도착 예측 -->
+      <div style="font-size:0.8rem; opacity:0.5; margin-top:-8px; margin-bottom:8px;" id="arrival-0800-label"></div>
 
       <div class="row">
         <!-- 소요시간 -->
@@ -204,21 +201,14 @@
     }
 
     function renderBriefing(b) {
-      const { route, weather, events, recommendedDeparture, arrivalScenarios, targetArrival, generatedAt } = b;
+      const { route, weather, events, recommendedDeparture, arrivalAt0800, generatedAt } = b;
 
       document.getElementById('briefing-section').style.display = 'block';
       document.getElementById('departure-time').textContent = recommendedDeparture;
-      document.getElementById('target-arrival-label').textContent =
-        `${targetArrival || '08:00'} 도착 기준`;
-
-      // 출발-도착 시나리오
-      const scList = document.getElementById('scenarios-list');
-      scList.innerHTML = '';
-      (arrivalScenarios || []).forEach(s => {
-        const li = document.createElement('li');
-        li.textContent = `${s.departure} 출발 → ${s.arrival} 도착`;
-        scList.appendChild(li);
-      });
+      if (arrivalAt0800) {
+        document.getElementById('arrival-0800-label').textContent =
+          `⏰ 08:00 출발 시 도착: ${arrivalAt0800}`;
+      }
 
       // 소요시간
       document.getElementById('travel-time').innerHTML = `${route.totalTime}<span>분</span>`;
