@@ -127,7 +127,13 @@
       <div class="card">
         <div class="card-title">추천 출발 시각</div>
         <div class="departure-time" id="departure-time">--:--</div>
-        <div style="font-size:0.8rem; opacity:0.5; margin-top:4px">8시 30분 도착 기준</div>
+        <div id="target-arrival-label" style="font-size:0.8rem; opacity:0.5; margin-top:4px">8시 도착 기준</div>
+      </div>
+
+      <!-- 출발 시간대별 도착 예측 -->
+      <div class="card" id="scenarios-card">
+        <div class="card-title">⏰ 출발 시간대별 도착 예측</div>
+        <ul class="incident-list" id="scenarios-list"></ul>
       </div>
 
       <div class="row">
@@ -198,10 +204,21 @@
     }
 
     function renderBriefing(b) {
-      const { route, weather, events, recommendedDeparture, generatedAt } = b;
+      const { route, weather, events, recommendedDeparture, arrivalScenarios, targetArrival, generatedAt } = b;
 
       document.getElementById('briefing-section').style.display = 'block';
       document.getElementById('departure-time').textContent = recommendedDeparture;
+      document.getElementById('target-arrival-label').textContent =
+        `${targetArrival || '08:00'} 도착 기준`;
+
+      // 출발-도착 시나리오
+      const scList = document.getElementById('scenarios-list');
+      scList.innerHTML = '';
+      (arrivalScenarios || []).forEach(s => {
+        const li = document.createElement('li');
+        li.textContent = `${s.departure} 출발 → ${s.arrival} 도착`;
+        scList.appendChild(li);
+      });
 
       // 소요시간
       document.getElementById('travel-time').innerHTML = `${route.totalTime}<span>분</span>`;
@@ -218,7 +235,7 @@
       document.getElementById('weather-temp').textContent = weather.temp;
       document.getElementById('weather-desc').textContent = weather.weatherDesc;
       document.getElementById('weather-detail').textContent =
-        `강수 ${weather.rainProb} · 바람 ${weather.windSpeed}`;
+        `강수 ${weather.rainProb} · 바람 ${weather.windSpeed} · 미먼 ${weather.dust || '-'}`;
 
       // 사고·공사
       const list = document.getElementById('incident-list');

@@ -4,14 +4,15 @@ const NTFY_TOPIC = process.env.NTFY_TOPIC || 'wife-commute';
 
 // ntfy.sh 를 통한 아이폰 잠금화면 알림
 async function sendPushNotification(briefing) {
-  const { route, weather, recommendedDeparture } = briefing;
+  const { route, weather, recommendedDeparture, targetArrival } = briefing;
 
   const delayEmoji = route.isDelayed ? '⚠️' : '✅';
-  const title = `🌅 출근 브리핑 | 추천출발 ${recommendedDeparture}`;
+  const title = `🌅 출근 브리핑 | 추천출발 ${recommendedDeparture} (${targetArrival || '08:00'} 도착)`;
   const body = [
     `${delayEmoji} 소요 ${route.totalTime}분 (${route.totalDistance}km)`,
     `🌤 ${weather.weatherDesc} ${weather.temp}`,
     `💧 강수 ${weather.rainProb}${weather.needUmbrella ? ' ☂️ 우산챙기기' : ''}`,
+    `😷 미세먼지 ${weather.dust}`,
     route.incidents.length > 0 ? `🚧 ${route.incidents[0]}` : '',
   ]
     .filter(Boolean)
@@ -36,7 +37,7 @@ async function sendPushNotification(briefing) {
 
 // 음성 브리핑용 텍스트 생성 (iOS 단축어에서 사용)
 function getVoiceScript(briefing) {
-  const { route, weather, recommendedDeparture } = briefing;
+  const { route, weather, recommendedDeparture, targetArrival } = briefing;
   const delayText = route.isDelayed
     ? `평소보다 ${route.delayMin}분 지연되고 있어요.`
     : '교통 상황은 원활합니다.';
@@ -50,14 +51,19 @@ function getVoiceScript(briefing) {
     ? '오늘 우산을 챙기세요.'
     : '';
 
+  const dustText = weather.dust && weather.dust !== '알 수 없음'
+    ? `미세먼지는 ${weather.dust.replace(/[^\w가-힣 ]/g, '').trim()}입니다.`
+    : '';
+
   return [
     `안녕하세요. 오늘 아침 출근 브리핑입니다.`,
     `현재 동평로에서 경원로까지 예상 소요 시간은 ${route.totalTime}분입니다.`,
     delayText,
     incidentText,
-    `추천 출발 시각은 ${recommendedDeparture}입니다.`,
+    `${targetArrival || '08:00'} 도착 기준 추천 출발 시각은 ${recommendedDeparture}입니다.`,
     `날씨는 ${weather.weatherDesc}, 기온은 ${weather.temp}입니다.`,
     `강수 확률은 ${weather.rainProb}입니다.`,
+    dustText,
     umbrellaText,
     `안전 운전 하세요!`,
   ]

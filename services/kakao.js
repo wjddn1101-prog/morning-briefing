@@ -14,7 +14,7 @@ async function sendKakaoMessage(briefing) {
     return false;
   }
 
-  const { route, weather, recommendedDeparture, generatedAt } = briefing;
+  const { route, weather, recommendedDeparture, arrivalScenarios, targetArrival, generatedAt } = briefing;
 
   const delayText = route.isDelayed
     ? `⚠️ 평소보다 ${route.delayMin}분 지연`
@@ -27,13 +27,20 @@ async function sendKakaoMessage(briefing) {
 
   const umbrellaText = weather.needUmbrella ? '\n☂️ 우산 챙기세요!' : '';
 
+  const scenarioText = (arrivalScenarios || [])
+    .map(s => `• ${s.departure} 출발 → ${s.arrival} 도착`)
+    .join('\n');
+
   const messageText = [
     `🌅 아침 출근 브리핑 (${generatedAt})`,
     '',
     `📍 동평로 176 → 경원로 73번길`,
     `⏱ 예상 소요: ${route.totalTime}분 (${route.totalDistance}km)`,
     `📊 교통: ${delayText}`,
-    `🚀 추천 출발: ${recommendedDeparture}`,
+    `🚀 추천 출발: ${recommendedDeparture} (${targetArrival || '08:00'} 도착)`,
+    '',
+    `⏰ 출발 시간대별 도착 예측`,
+    scenarioText,
     '',
     `🚧 사고·공사 구간`,
     incidentText,
@@ -41,6 +48,7 @@ async function sendKakaoMessage(briefing) {
     `🌤 날씨: ${weather.weatherDesc} ${weather.temp}`,
     `💧 강수확률: ${weather.rainProb} | 습도: ${weather.humidity}`,
     `💨 바람: ${weather.windSpeed}`,
+    `😷 미세먼지: ${weather.dust} (PM10: ${weather.pm10}, PM2.5: ${weather.pm25})`,
     umbrellaText,
   ].join('\n');
 

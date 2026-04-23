@@ -97,7 +97,7 @@ async function getRoute(originAddr, destAddr) {
 }
 
 // 추천 출발 시각 계산
-function getRecommendedDeparture(totalTime, targetArrival = '08:30') {
+function getRecommendedDeparture(totalTime, targetArrival = '08:00') {
   const [h, m] = targetArrival.split(':').map(Number);
   const arrivalDate = new Date();
   arrivalDate.setHours(h, m, 0, 0);
@@ -109,4 +109,17 @@ function getRecommendedDeparture(totalTime, targetArrival = '08:30') {
   return `${dh}:${dm}`;
 }
 
-module.exports = { getRoute, getRecommendedDeparture };
+// 출발 시간대별 도착 예측 시나리오
+function getArrivalScenarios(totalTime, departures = ['07:00', '07:15', '07:30', '07:45', '08:00']) {
+  return departures.map(dep => {
+    const [h, m] = dep.split(':').map(Number);
+    const depDate = new Date();
+    depDate.setHours(h, m, 0, 0);
+    const arrDate = new Date(depDate.getTime() + totalTime * 60 * 1000);
+    const ah = arrDate.getHours().toString().padStart(2, '0');
+    const am = arrDate.getMinutes().toString().padStart(2, '0');
+    return { departure: dep, arrival: `${ah}:${am}` };
+  });
+}
+
+module.exports = { getRoute, getRecommendedDeparture, getArrivalScenarios };

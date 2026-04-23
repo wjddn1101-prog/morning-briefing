@@ -1,4 +1,4 @@
-const { getRoute, getRecommendedDeparture } = require('./tmap');
+const { getRoute, getRecommendedDeparture, getArrivalScenarios } = require('./tmap');
 const { getWeather } = require('./weather');
 const { sendKakaoMessage } = require('./kakao');
 const { sendPushNotification, getVoiceScript } = require('./notification');
@@ -24,13 +24,16 @@ async function generateBriefing() {
     getTodayEvents()
   ]);
 
-  const recommendedDeparture = getRecommendedDeparture(route.totalTime, '08:30');
+  const recommendedDeparture = getRecommendedDeparture(route.totalTime, '08:00');
+  const arrivalScenarios = getArrivalScenarios(route.totalTime);
 
   const briefing = {
     route,
     weather,
     events,
     recommendedDeparture,
+    arrivalScenarios,
+    targetArrival: '08:00',
     generatedAt,
     voiceScript: '',
   };
