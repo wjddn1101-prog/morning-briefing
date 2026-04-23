@@ -1,4 +1,6 @@
 const axios = require('axios');
+const FormData = require('form-data');
+const { textToSpeech } = require('./tts');
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
@@ -50,6 +52,9 @@ async function sendTelegramMessage(briefing) {
   const finalText = text.filter(line => line !== null && line !== undefined).join('\n');
   const chatIds = [...new Set(CHAT_ID.split(',').map(id => id.trim()).filter(id => id))];
 
+  // 음성 파일 생성 (OPENAI_API_KEY 있을 때만)
+  const audioBuffer = briefing.voiceScript ? await textToSpeech(briefing.voiceScript) : null;
+
   try {
     for (const id of chatIds) {
       await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
@@ -57,8 +62,24 @@ async function sendTelegramMessage(briefing) {
         text: finalText,
         parse_mode: 'Markdown',
       });
+
+      if (audioBuffer) {
+        const form = new FormData();
+        form.append('chat_id', id);
+        form.append('audio', audioBuffer, {
+          filename: 'briefing.mp3',
+          contentType: 'audio/mpeg',
+        });
+        form.append('title', '아침 출근 브리핑');
+        form.append('performer', 'Nova');
+        await axios.post(
+          `https://api.telegram.org/bot${BOT_TOKEN}/sendAudio`,
+          form,
+          { headers: form.getHeaders(), maxBodyLength: Infinity }
+        );
+      }
     }
-    console.log(`텔레그램 메시지 전송 성공 (${chatIds.length}명)`);
+    console.log(`텔레그램 메시지 전송 성공 (${chatIds.length}명${audioBuffer ? ', 음성 포함' : ''})`);
     return true;
   } catch (err) {
     console.error('텔레그램 전송 실패:', err.response?.data || err.message);
