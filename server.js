@@ -100,7 +100,7 @@ app.get('/api/status', (req, res) => {
 // ─── 스케줄러 ──────────────────────────────────────
 // ENABLE_LOCAL_CRON=true 일 때만 서버 내장 cron 실행
 // GitHub Actions를 사용 중이면 이 값을 설정하지 말 것 (중복 발송 방지)
-const schedule = process.env.CRON_SCHEDULE || '30 7 * * 1-5';
+const schedule = process.env.CRON_SCHEDULE || '10 7 * * 1-5';
 const { isHoliday } = require('./services/holiday');
 
 if (process.env.ENABLE_LOCAL_CRON === 'true') {

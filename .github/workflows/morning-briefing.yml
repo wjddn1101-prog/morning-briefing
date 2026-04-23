@@ -2,9 +2,9 @@ name: 아침 출근 브리핑
 
 on:
   schedule:
-    # 평일(월~금) 오전 7:30 KST = 22:30 UTC (전날 일~목)
+    # 평일(월~금) 오전 7:10 KST = 22:10 UTC (전날 일~목)
     # 공휴일 체크는 run-briefing.js 내부에서 처리
-    - cron: '30 22 * * 0-4'
+    - cron: '10 22 * * 0-4'
   workflow_dispatch: # 수동 실행 / 외부 cron 트리거용
 
 permissions:
