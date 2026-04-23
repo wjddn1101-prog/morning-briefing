@@ -47,7 +47,7 @@ async function sendTelegramMessage(briefing) {
   }
 
   const finalText = text.filter(line => line !== null && line !== undefined).join('\n');
-  const chatIds = CHAT_ID.split(',').map(id => id.trim()).filter(id => id);
+  const chatIds = [...new Set(CHAT_ID.split(',').map(id => id.trim()).filter(id => id))];
 
   try {
     for (const id of chatIds) {

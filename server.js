@@ -98,28 +98,34 @@ app.get('/api/status', (req, res) => {
 });
 
 // ─── 스케줄러 ──────────────────────────────────────
+// ENABLE_LOCAL_CRON=true 일 때만 서버 내장 cron 실행
+// GitHub Actions를 사용 중이면 이 값을 설정하지 말 것 (중복 발송 방지)
 const schedule = process.env.CRON_SCHEDULE || '30 7 * * 1-5';
 const { isHoliday } = require('./services/holiday');
 
-cron.schedule(
-  schedule,
-  async () => {
-    if (isHoliday()) {
-      console.log(`[자동 스케줄] 오늘은 공휴일이므로 브리핑 자동 발송을 건너뜁니다.`);
-      return;
-    }
+if (process.env.ENABLE_LOCAL_CRON === 'true') {
+  cron.schedule(
+    schedule,
+    async () => {
+      if (isHoliday()) {
+        console.log(`[자동 스케줄] 오늘은 공휴일이므로 브리핑 자동 발송을 건너뜁니다.`);
+        return;
+      }
 
-    console.log(`[자동 스케줄] 평일 브리핑 시작`);
-    // 토큰 자동 갱신 시도
-    if (process.env.KAKAO_REFRESH_TOKEN) await refreshAccessToken();
-    try {
-      lastBriefing = await generateBriefing();
-    } catch (err) {
-      console.error('[자동 스케줄] 오류:', err.message);
-    }
-  },
-  { timezone: 'Asia/Seoul' }
-);
+      console.log(`[자동 스케줄] 평일 브리핑 시작`);
+      if (process.env.KAKAO_REFRESH_TOKEN) await refreshAccessToken();
+      try {
+        lastBriefing = await generateBriefing();
+      } catch (err) {
+        console.error('[자동 스케줄] 오류:', err.message);
+      }
+    },
+    { timezone: 'Asia/Seoul' }
+  );
+  console.log(`📅 내장 스케줄러 활성화: ${schedule} (Asia/Seoul)`);
+} else {
+  console.log(`📅 내장 스케줄러 비활성화 (GitHub Actions 사용 중)`);
+}
 
 app.listen(PORT, () => {
   console.log(`\n🌅 Morning Briefing 서버 시작!`);
