@@ -7,7 +7,7 @@ async function sendPushNotification(briefing) {
   const { route, weather, recommendedDeparture, targetArrival } = briefing;
 
   const delayEmoji = route.isDelayed ? '⚠️' : '✅';
-  const title = `🌅 출근 브리핑 | 추천출발 ${recommendedDeparture} (${targetArrival || '08:00'} 도착)`;
+  const title = `🌅 출근 브리핑 | 추천출발 ${recommendedDeparture} (${targetArrival || '08:50'} 도착)`;
   const body = [
     `${delayEmoji} 소요 ${route.totalTime}분 (${route.totalDistance}km)`,
     `🌤 ${weather.weatherDesc} ${weather.temp}`,
@@ -60,7 +60,7 @@ function getVoiceScript(briefing) {
     `현재 동평로에서 경원로까지 예상 소요 시간은 ${route.totalTime}분입니다.`,
     delayText,
     incidentText,
-    `${targetArrival || '08:00'} 도착 기준 추천 출발 시각은 ${recommendedDeparture}입니다.`,
+    `${targetArrival || '08:50'} 도착 기준 추천 출발 시각은 ${recommendedDeparture}입니다.`,
     `날씨는 ${weather.weatherDesc}, 기온은 ${weather.temp}입니다.`,
     `강수 확률은 ${weather.rainProb}입니다.`,
     dustText,

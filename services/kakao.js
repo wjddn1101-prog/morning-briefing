@@ -33,7 +33,7 @@ async function sendKakaoMessage(briefing) {
     `📍 동평로 176 → 경원로 73번길`,
     `⏱ 예상 소요: ${route.totalTime}분 (${route.totalDistance}km)`,
     `📊 교통: ${delayText}`,
-    `🚀 추천 출발: ${recommendedDeparture} (08:00 도착 기준)`,
+    `🚀 추천 출발: ${recommendedDeparture} (08:50 도착 기준)`,
     `⏰ 08:00 출발 시 도착: ${arrivalAt0800}`,
     '',
     `🚧 사고·공사 구간`,

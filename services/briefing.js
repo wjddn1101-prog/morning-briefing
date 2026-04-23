@@ -24,7 +24,7 @@ async function generateBriefing() {
     getTodayEvents()
   ]);
 
-  const recommendedDeparture = getRecommendedDeparture(route.totalTime, '08:00');
+  const recommendedDeparture = getRecommendedDeparture(route.totalTime, '08:50');
   const arrivalAt0800 = getArrivalAt0800(route.totalTime);
 
   const briefing = {
@@ -33,7 +33,7 @@ async function generateBriefing() {
     events,
     recommendedDeparture,
     arrivalAt0800,
-    targetArrival: '08:00',
+    targetArrival: '08:50',
     generatedAt,
     voiceScript: '',
   };
