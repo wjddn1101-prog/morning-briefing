@@ -1,6 +1,7 @@
 const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
+const KAKAO_TIMEOUT_MS = Number(process.env.KAKAO_TIMEOUT_MS || 10000);
 
 function getAccessToken() {
   return process.env.KAKAO_ACCESS_TOKEN || '';
@@ -61,6 +62,7 @@ async function sendKakaoMessage(briefing) {
         }),
       }),
       {
+        timeout: KAKAO_TIMEOUT_MS,
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -85,7 +87,10 @@ async function getTokenFromCode(code, redirectUri) {
       redirect_uri: redirectUri,
       code,
     }),
-    { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    {
+      timeout: KAKAO_TIMEOUT_MS,
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    }
   );
   return res.data;
 }
@@ -93,8 +98,12 @@ async function getTokenFromCode(code, redirectUri) {
 // .env 파일에 토큰 저장
 function saveTokenToEnv(accessToken, refreshToken) {
   const envPath = path.join(__dirname, '../.env');
-  let content = fs.readFileSync(envPath, 'utf8');
-  content = content.replace(/KAKAO_ACCESS_TOKEN=.*/, `KAKAO_ACCESS_TOKEN=${accessToken}`);
+  let content = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8') : '';
+  if (content.includes('KAKAO_ACCESS_TOKEN=')) {
+    content = content.replace(/KAKAO_ACCESS_TOKEN=.*/, `KAKAO_ACCESS_TOKEN=${accessToken}`);
+  } else {
+    content += `${content.endsWith('\n') || content.length === 0 ? '' : '\n'}KAKAO_ACCESS_TOKEN=${accessToken}`;
+  }
   if (refreshToken) {
     if (content.includes('KAKAO_REFRESH_TOKEN=')) {
       content = content.replace(/KAKAO_REFRESH_TOKEN=.*/, `KAKAO_REFRESH_TOKEN=${refreshToken}`);
@@ -120,7 +129,10 @@ async function refreshAccessToken() {
         client_id: process.env.KAKAO_REST_API_KEY,
         refresh_token: refreshToken,
       }),
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+      {
+        timeout: KAKAO_TIMEOUT_MS,
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      }
     );
     const { access_token, refresh_token } = res.data;
     saveTokenToEnv(access_token, refresh_token || refreshToken);

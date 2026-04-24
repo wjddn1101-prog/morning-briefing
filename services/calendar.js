@@ -1,4 +1,7 @@
 const ical = require('node-ical');
+const axios = require('axios');
+
+const CALENDAR_TIMEOUT_MS = Number(process.env.CALENDAR_TIMEOUT_MS || 10000);
 
 // 오늘 날짜의 자정과 다음날 자정을 구하는 헬퍼 함수
 function getTodayRange() {
@@ -14,7 +17,11 @@ async function getTodayEvents() {
   if (!url) return [];
 
   try {
-    const events = await ical.async.fromURL(url);
+    const res = await axios.get(url, {
+      timeout: CALENDAR_TIMEOUT_MS,
+      responseType: 'text',
+    });
+    const events = await ical.async.parseICS(res.data);
     const { start, end } = getTodayRange();
     const todayEvents = [];
 

@@ -2,6 +2,7 @@ const axios = require('axios');
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+const TELEGRAM_TIMEOUT_MS = Number(process.env.TELEGRAM_TIMEOUT_MS || 10000);
 
 async function sendTelegramMessage(briefing) {
   if (!BOT_TOKEN || !CHAT_ID) {
@@ -52,11 +53,15 @@ async function sendTelegramMessage(briefing) {
 
   try {
     for (const id of chatIds) {
-      await axios.post(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-        chat_id: id,
-        text: finalText,
-        parse_mode: 'Markdown',
-      });
+      await axios.post(
+        `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,
+        {
+          chat_id: id,
+          text: finalText,
+          parse_mode: 'Markdown',
+        },
+        { timeout: TELEGRAM_TIMEOUT_MS }
+      );
     }
     console.log(`텔레그램 메시지 전송 성공 (${chatIds.length}명)`);
     return true;
@@ -69,7 +74,9 @@ async function sendTelegramMessage(briefing) {
 // Chat ID 자동 조회
 async function getChatId() {
   if (!BOT_TOKEN) throw new Error('TELEGRAM_BOT_TOKEN 필요');
-  const res = await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates`);
+  const res = await axios.get(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates`, {
+    timeout: TELEGRAM_TIMEOUT_MS,
+  });
   const updates = res.data.result;
   if (updates.length === 0) return null;
   return updates[updates.length - 1].message?.chat?.id;

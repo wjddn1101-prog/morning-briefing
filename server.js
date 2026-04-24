@@ -3,6 +3,7 @@ const express = require('express');
 const cron = require('node-cron');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const { generateBriefing } = require('./services/briefing');
 const { getTokenFromCode, saveTokenToEnv, refreshAccessToken } = require('./services/kakao');
 
@@ -14,6 +15,30 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 let lastBriefing = null;
+
+function formatWidgetMetric(value, unit = '') {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) ? `${parsed}${unit}` : '-';
+}
+
+function getWidgetData(briefing) {
+  const b = briefing;
+  const isDelayed = b.route.isDelayed ? `(+${b.route.delayMin})` : '';
+  const t1 = `🚗 ${b.route.totalTime}분${isDelayed} · 출발 ${b.recommendedDeparture}`;
+  const dustStatus = b.weather.dust?.includes('나쁨') ? '나쁨😷' : '보통';
+  const temp = formatWidgetMetric(b.weather.temp, '°C');
+  const wind = formatWidgetMetric(b.weather.windSpeed);
+  const t2 = `🌤 ${temp} · 풍속 ${wind} · 미먼 ${dustStatus}`;
+  return { text1: t1, text2: t2 };
+}
+
+function saveBriefingFiles(briefing) {
+  fs.writeFileSync(
+    path.join(__dirname, 'public/widget.json'),
+    JSON.stringify(getWidgetData(briefing))
+  );
+  fs.writeFileSync(path.join(__dirname, 'public/voice.txt'), briefing.voiceScript || '');
+}
 
 // ─── 카카오 OAuth 설정 ─────────────────────────────
 const REDIRECT_URI = `http://localhost:${PORT}/auth/kakao/callback`;
@@ -51,6 +76,7 @@ app.get('/api/briefing', async (req, res) => {
   try {
     const briefing = await generateBriefing();
     lastBriefing = briefing;
+    saveBriefingFiles(briefing);
     res.json({ success: true, briefing });
   } catch (err) {
     console.error('브리핑 오류:', err.message);
@@ -71,18 +97,18 @@ app.get('/api/widget', (req, res) => {
   if (!lastBriefing) {
     return res.json({ text1: '브리핑 대기중', text2: '서버에 데이터가 없습니다.' });
   }
-  const b = lastBriefing;
-  const isDelayed = b.route.isDelayed ? `(+${b.route.delayMin})` : '';
-  const t1 = `🚗 ${b.route.totalTime}분${isDelayed} · 출발 ${b.recommendedDeparture}`;
-  const dustStatus = b.weather.dust.includes('나쁨') ? '나쁨😷' : '보통';
-  const t2 = `🌤 ${parseInt(b.weather.temp)}°C · 풍속 ${parseInt(b.weather.windSpeed)} · 미먼 ${dustStatus}`;
-  
-  res.json({ text1: t1, text2: t2 });
+  res.json(getWidgetData(lastBriefing));
 });
 
 // 음성 스크립트 (iOS 단축어 TTS용)
 app.get('/api/voice', (req, res) => {
-  if (!lastBriefing) return res.type('text').send('아직 브리핑이 없습니다.');
+  if (!lastBriefing) {
+    const voicePath = path.join(__dirname, 'public/voice.txt');
+    if (fs.existsSync(voicePath)) {
+      return res.type('text').send(fs.readFileSync(voicePath, 'utf8'));
+    }
+    return res.type('text').send('아직 브리핑이 없습니다.');
+  }
   res.type('text').send(lastBriefing.voiceScript);
 });
 
@@ -93,7 +119,7 @@ app.get('/api/status', (req, res) => {
     kakaoConnected: !!process.env.KAKAO_ACCESS_TOKEN,
     lastBriefingAt: lastBriefing?.generatedAt || null,
     ntfyTopic: process.env.NTFY_TOPIC,
-    schedule: process.env.CRON_SCHEDULE || '30 7 * * 1-5',
+    schedule: process.env.CRON_SCHEDULE || '10 7 * * 1-5',
   });
 });
 
@@ -116,6 +142,7 @@ if (process.env.ENABLE_LOCAL_CRON === 'true') {
       if (process.env.KAKAO_REFRESH_TOKEN) await refreshAccessToken();
       try {
         lastBriefing = await generateBriefing();
+        saveBriefingFiles(lastBriefing);
       } catch (err) {
         console.error('[자동 스케줄] 오류:', err.message);
       }

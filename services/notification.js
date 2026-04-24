@@ -1,6 +1,7 @@
 const axios = require('axios');
 
 const NTFY_TOPIC = process.env.NTFY_TOPIC || 'wife-commute';
+const NOTIFICATION_TIMEOUT_MS = Number(process.env.NOTIFICATION_TIMEOUT_MS || 10000);
 
 // ntfy.sh 를 통한 아이폰 잠금화면 알림
 async function sendPushNotification(briefing) {
@@ -19,14 +20,22 @@ async function sendPushNotification(briefing) {
     .join('\n');
 
   try {
-    await axios.post(`https://ntfy.sh/${NTFY_TOPIC}`, body, {
-      headers: {
-        Title: title,
-        Priority: route.isDelayed ? 'high' : 'default',
-        Tags: route.isDelayed ? 'warning,car' : 'car',
-        'Content-Type': 'text/plain; charset=utf-8',
+    await axios.post(
+      'https://ntfy.sh/',
+      {
+        topic: NTFY_TOPIC,
+        title,
+        message: body,
+        priority: route.isDelayed ? 4 : 3,
+        tags: route.isDelayed ? ['warning', 'car'] : ['car'],
       },
-    });
+      {
+        timeout: NOTIFICATION_TIMEOUT_MS,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
     console.log('푸시 알림 전송 성공');
     return true;
   } catch (err) {

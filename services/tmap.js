@@ -1,12 +1,17 @@
 const axios = require('axios');
 
 const TMAP_APP_KEY = process.env.TMAP_APP_KEY;
+const TMAP_TIMEOUT_MS = Number(process.env.TMAP_TIMEOUT_MS || 10000);
+
+const tmapClient = axios.create({
+  timeout: TMAP_TIMEOUT_MS,
+});
 
 // T-map 지오코딩 (주소 → 좌표)
 async function geocode(address) {
   if (!TMAP_APP_KEY) throw new Error('TMAP_APP_KEY가 설정되지 않았습니다.');
   
-  const res = await axios.get('https://apis.openapi.sk.com/tmap/geo/fullAddrGeo', {
+  const res = await tmapClient.get('https://apis.openapi.sk.com/tmap/geo/fullAddrGeo', {
     params: {
       version: 1,
       format: 'json',
@@ -38,7 +43,7 @@ async function getRoute(originAddr, destAddr) {
     geocode(destAddr),
   ]);
 
-  const res = await axios.post('https://apis.openapi.sk.com/tmap/routes?version=1&format=json', {
+  const res = await tmapClient.post('https://apis.openapi.sk.com/tmap/routes?version=1&format=json', {
     startX: origin.lon,
     startY: origin.lat,
     endX: dest.lon,
