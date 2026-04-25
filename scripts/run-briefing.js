@@ -9,6 +9,24 @@ function formatWidgetMetric(value, unit = '') {
   return Number.isFinite(parsed) ? `${parsed}${unit}` : '-';
 }
 
+function logTelegramResult(result) {
+  if (!result) {
+    console.error('[GitHub Actions] Telegram result missing');
+    return;
+  }
+
+  console.log(`[GitHub Actions] Telegram result: ok=${result.ok} sent=${result.sent.length} failed=${result.failed.length}`);
+  for (const item of result.sent) {
+    console.log(`[GitHub Actions] Telegram sent chat=${item.maskedChatId} message_id=${item.messageId}`);
+  }
+  for (const item of result.failed) {
+    const error = item.error || {};
+    console.error(
+      `[GitHub Actions] Telegram failed chat=${item.maskedChatId || '-'} status=${error.status || '-'} code=${error.errorCode || '-'} description=${error.description || '-'}`
+    );
+  }
+}
+
 async function main() {
   if (process.env.GITHUB_EVENT_NAME === 'workflow_dispatch' && process.env.MANUAL_SEND !== 'true') {
     console.log('[GitHub Actions] 명시적으로 승인되지 않은 수동/외부 실행이므로 브리핑 발송을 건너뜁니다.');
@@ -35,7 +53,13 @@ async function main() {
   
   fs.writeFileSync(path.join(__dirname, '../public/widget.json'), JSON.stringify(widgetData));
   fs.writeFileSync(path.join(__dirname, '../public/voice.txt'), b.voiceScript);
+  logTelegramResult(b.delivery?.telegram);
   console.log(`[GitHub Actions] 브리핑 완료 및 위젯/음성 데이터 저장 성공`);
+
+  if (process.env.GITHUB_ACTIONS === 'true' && (b.delivery?.telegram?.sent?.length || 0) === 0) {
+    throw new Error('Telegram 전송 성공 0건: 브리핑 파일은 생성했지만 텔레그램 발송은 실패했습니다.');
+  }
+
   process.exit(0);
 }
 

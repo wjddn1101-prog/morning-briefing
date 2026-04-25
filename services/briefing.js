@@ -53,11 +53,37 @@ async function generateBriefing() {
   // 기존 코드엔 텔레그램 발송이 누락되어 있으니 추가
   const { sendTelegramMessage } = require('./telegram');
 
-  await Promise.all([
-    sendKakaoMessage(briefing).catch(e => console.error('Kakao Error', e.message)),
-    sendPushNotification(briefing).catch(e => console.error('Push Error', e.message)),
-    sendTelegramMessage(briefing).catch(e => console.error('Telegram Error', e.message))
+  const [kakaoResult, pushResult, telegramResult] = await Promise.all([
+    sendKakaoMessage(briefing).catch(e => {
+      console.error('Kakao Error', e.message);
+      return false;
+    }),
+    sendPushNotification(briefing).catch(e => {
+      console.error('Push Error', e.message);
+      return false;
+    }),
+    sendTelegramMessage(briefing).catch(e => {
+      console.error('Telegram Error', e.message);
+      return {
+        ok: false,
+        sent: [],
+        failed: [{
+          maskedChatId: null,
+          error: {
+            status: null,
+            errorCode: e.code || null,
+            description: e.message,
+          },
+        }],
+      };
+    })
   ]);
+
+  briefing.delivery = {
+    kakao: kakaoResult,
+    push: pushResult,
+    telegram: telegramResult,
+  };
 
   return briefing;
 }
