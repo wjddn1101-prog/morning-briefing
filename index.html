@@ -46,6 +46,7 @@
     .weather-temp { font-size: 2rem; font-weight: 700; }
     .weather-desc { font-size: 0.9rem; opacity: 0.7; margin-top: 4px; }
     .weather-detail { font-size: 0.8rem; opacity: 0.5; margin-top: 8px; }
+    .tip-text { font-size: 0.9rem; line-height: 1.4; opacity: 0.9; white-space: pre-line; }
 
     .incident-list { list-style: none; }
     .incident-list li {
@@ -79,9 +80,12 @@
 
     .status-bar {
       text-align: center;
-      font-size: 0.8rem;
-      opacity: 0.4;
+      font-size: 0.82rem;
+      opacity: 0.6;
       margin-top: 16px;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 10px;
     }
     .loading { text-align: center; opacity: 0.6; padding: 40px 0; }
     .spinner {
@@ -124,8 +128,11 @@
       <div class="card">
         <div class="card-title">추천 출발 시각</div>
         <div class="departure-time" id="departure-time">--:--</div>
-        <div style="font-size:0.8rem; opacity:0.5; margin-top:4px">8시 30분 도착 기준</div>
+        <div id="target-arrival-label" style="font-size:0.8rem; opacity:0.5; margin-top:4px">8시 50분 도착 기준</div>
       </div>
+
+      <!-- 08:00 출발 도착 예측 -->
+      <div style="font-size:0.8rem; opacity:0.5; margin-top:-8px; margin-bottom:8px;" id="arrival-0800-label"></div>
 
       <div class="row">
         <!-- 소요시간 -->
@@ -152,7 +159,7 @@
       <!-- 외출 팁 (코디/미세먼지) -->
       <div class="card">
         <div class="card-title">💡 외출 팁</div>
-        <div id="weather-outfit" style="font-size: 0.9rem; line-height: 1.4; opacity: 0.9;">--</div>
+        <div id="weather-outfit" class="tip-text">--</div>
         <div id="weather-dust" class="badge" style="margin-top: 8px;">미세먼지: --</div>
       </div>
 
@@ -172,6 +179,12 @@
 
   <script>
     async function loadBriefing() {
+      if (location.protocol === 'file:') {
+        document.getElementById('status-bar').textContent =
+          '오류: 이 화면은 서버에서 열어야 합니다. http://localhost:3000 으로 접속하세요.';
+        return;
+      }
+
       const btn = document.getElementById('refresh-btn');
       btn.disabled = true;
       btn.textContent = '⏳ 생성 중...';
@@ -195,10 +208,14 @@
     }
 
     function renderBriefing(b) {
-      const { route, weather, events, recommendedDeparture, generatedAt } = b;
+      const { route, weather, events, recommendedDeparture, arrivalAt0800, generatedAt } = b;
 
       document.getElementById('briefing-section').style.display = 'block';
       document.getElementById('departure-time').textContent = recommendedDeparture;
+      if (arrivalAt0800) {
+        document.getElementById('arrival-0800-label').textContent =
+          `⏰ 08:00 출발 시 도착: ${arrivalAt0800}`;
+      }
 
       // 소요시간
       document.getElementById('travel-time').innerHTML = `${route.totalTime}<span>분</span>`;
@@ -215,7 +232,7 @@
       document.getElementById('weather-temp').textContent = weather.temp;
       document.getElementById('weather-desc').textContent = weather.weatherDesc;
       document.getElementById('weather-detail').textContent =
-        `강수 ${weather.rainProb} · 바람 ${weather.windSpeed}`;
+        `강수 ${weather.rainProb} · 바람 ${weather.windSpeed} · 미먼 ${weather.dust || '-'}`;
 
       // 사고·공사
       const list = document.getElementById('incident-list');
@@ -232,7 +249,7 @@
 
       // 팁 & 미세먼지
       if (weather.outfit) {
-        document.getElementById('weather-outfit').innerText = weather.outfit.replace(/\n/g, '<br>');
+        document.getElementById('weather-outfit').textContent = weather.outfit;
       }
       const dustBadge = document.getElementById('weather-dust');
       dustBadge.textContent = `${weather.dust} (PM10: ${weather.pm10 || '-'})`;
@@ -258,15 +275,23 @@
         weather.needUmbrella ? 'block' : 'none';
 
       document.getElementById('status-bar').textContent =
-        `마지막 업데이트: ${generatedAt} · ${route.totalDistance}km`;
+        `🕐 마지막 업데이트: ${generatedAt} · 거리 ${route.totalDistance}km`;
     }
 
     // 페이지 로드 시 기존 브리핑 표시
-    fetch('/api/latest')
-      .then(r => r.json())
-      .then(data => {
-        if (data.success) renderBriefing(data.briefing);
-      });
+    if (location.protocol === 'file:') {
+      document.getElementById('status-bar').textContent =
+        '서버가 필요합니다. 터미널에서 npm start 후 http://localhost:3000 으로 접속하세요.';
+    } else {
+      fetch('/api/latest')
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) renderBriefing(data.briefing);
+        })
+        .catch(err => {
+          document.getElementById('status-bar').textContent = '오류: ' + err.message;
+        });
+    }
   </script>
 </body>
 </html>
