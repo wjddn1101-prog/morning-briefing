@@ -6,12 +6,14 @@ const { getTodayEvents } = require('./calendar');
 
 const ORIGIN = process.env.ORIGIN_ADDRESS || '부산광역시 부산진구 동평로 176';
 const DEST = process.env.DEST_ADDRESS || '경남 김해시 경원로 73번길 15';
+const TIME_ZONE = 'Asia/Seoul';
 
 async function generateBriefing() {
-  console.log(`[${new Date().toLocaleString('ko-KR')}] 브리핑 생성 시작...`);
+  console.log(`[${new Date().toLocaleString('ko-KR', { timeZone: TIME_ZONE })}] 브리핑 생성 시작...`);
 
   const now = new Date();
   const generatedAt = now.toLocaleString('ko-KR', {
+    timeZone: TIME_ZONE,
     month: 'long',
     day: 'numeric',
     hour: '2-digit',
