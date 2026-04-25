@@ -3,6 +3,7 @@ const { getWeather } = require('./weather');
 const { sendKakaoMessage } = require('./kakao');
 const { sendPushNotification, getVoiceScript } = require('./notification');
 const { getTodayEvents } = require('./calendar');
+const { sendTelegramMessage } = require('./telegram');
 
 const ORIGIN = process.env.ORIGIN_ADDRESS || '부산광역시 부산진구 동평로 176';
 const DEST = process.env.DEST_ADDRESS || '경남 김해시 경원로 73번길 15';
@@ -50,10 +51,6 @@ async function generateBriefing() {
     일정수: events.length,
     추천출발: recommendedDeparture,
   });
-
-  // 카카오톡 + 푸시 알림 + 텔레그램은 별도 로직?
-  // 기존 코드엔 텔레그램 발송이 누락되어 있으니 추가
-  const { sendTelegramMessage } = require('./telegram');
 
   const [kakaoResult, pushResult, telegramResult] = await Promise.all([
     sendKakaoMessage(briefing).catch(e => {

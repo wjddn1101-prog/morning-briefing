@@ -2,9 +2,10 @@ name: 아침 출근 브리핑
 
 on:
   schedule:
-    # 평일(월~금) 오전 7:10 KST = 22:10 UTC (전날 일~목)
+    # 평일(월~금) 오전 7:10 KST 목표 = 21:50 UTC (전날 일~목)
+    # GitHub Actions 스케줄 지연(약 15~20분)을 감안해 20분 앞당겨 설정
     # 공휴일 체크는 run-briefing.js 내부에서 처리
-    - cron: '10 22 * * 0-4'
+    - cron: '50 21 * * 0-4'
   workflow_dispatch:
     inputs:
       send_now:
