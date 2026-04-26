@@ -2,9 +2,9 @@ name: 아침 출근 브리핑
 
 on:
   schedule:
-    # 평일(월~금) 오전 7:10 KST = 22:10 UTC (전날 일~목)
-    # 공휴일 체크는 run-briefing.js 내부에서 처리
-    - cron: '10 22 * * 0-4'
+    # 매일 오전 7:10 KST = 22:10 UTC (전날)
+    # 주말/공휴일에는 run-briefing.js가 stale 음성 파일을 "브리핑 없음"으로 갱신
+    - cron: '10 22 * * *'
   workflow_dispatch:
     inputs:
       send_now:

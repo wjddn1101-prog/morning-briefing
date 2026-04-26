@@ -127,14 +127,14 @@ app.get('/api/status', (req, res) => {
 // ENABLE_LOCAL_CRON=true 일 때만 서버 내장 cron 실행
 // GitHub Actions를 사용 중이면 이 값을 설정하지 말 것 (중복 발송 방지)
 const schedule = process.env.CRON_SCHEDULE || '10 7 * * 1-5';
-const { isHoliday } = require('./services/holiday');
+const { getNoBriefingReason, isBriefingDay } = require('./services/holiday');
 
 if (process.env.ENABLE_LOCAL_CRON === 'true') {
   cron.schedule(
     schedule,
     async () => {
-      if (isHoliday()) {
-        console.log(`[자동 스케줄] 오늘은 공휴일이므로 브리핑 자동 발송을 건너뜁니다.`);
+      if (!isBriefingDay()) {
+        console.log(`[자동 스케줄] 오늘은 ${getNoBriefingReason() || '비출근일'}이므로 브리핑 자동 발송을 건너뜁니다.`);
         return;
       }
 

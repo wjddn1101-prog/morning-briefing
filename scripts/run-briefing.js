@@ -2,7 +2,7 @@ require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 const { generateBriefing } = require('../services/briefing');
-const { isHoliday } = require('../services/holiday');
+const { getNoBriefingReason, isBriefingDay } = require('../services/holiday');
 
 function formatWidgetMetric(value, unit = '') {
   const parsed = Number.parseInt(value, 10);
@@ -27,14 +27,26 @@ function logTelegramResult(result) {
   }
 }
 
+function writeNoBriefingFiles(reason) {
+  const voiceText = `오늘은 ${reason}이므로 출근 브리핑이 없습니다.`;
+  const widgetData = {
+    text1: '출근 브리핑 없음',
+    text2: `${reason} · 알림 없음`,
+  };
+
+  fs.writeFileSync(path.join(__dirname, '../public/widget.json'), JSON.stringify(widgetData));
+  fs.writeFileSync(path.join(__dirname, '../public/voice.txt'), voiceText);
+  console.log(`[GitHub Actions] ${reason}이므로 브리핑 발송 없이 위젯/음성 데이터를 비웠습니다.`);
+}
+
 async function main() {
   if (process.env.GITHUB_EVENT_NAME === 'workflow_dispatch' && process.env.MANUAL_SEND !== 'true') {
     console.log('[GitHub Actions] 명시적으로 승인되지 않은 수동/외부 실행이므로 브리핑 발송을 건너뜁니다.');
     process.exit(0);
   }
 
-  if (isHoliday()) {
-    console.log(`[GitHub Actions] 오늘은 공휴일이므로 브리핑을 건너뜁니다.`);
+  if (!isBriefingDay()) {
+    writeNoBriefingFiles(getNoBriefingReason() || '비출근일');
     process.exit(0);
   }
   

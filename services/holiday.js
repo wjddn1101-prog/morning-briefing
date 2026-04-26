@@ -30,11 +30,39 @@ const HOLIDAYS = [
   '2026-09-24', '2026-09-25', '2026-09-26' // 추석 연휴
 ];
 
+function getKoreaDateParts(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    weekday: 'short',
+  }).formatToParts(date);
+
+  return Object.fromEntries(parts.map((part) => [part.type, part.value]));
+}
+
 function isHoliday(date = new Date()) {
-  const mmdd = `${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-  const yyyymmdd = `${date.getFullYear()}-${mmdd}`;
+  const { year, month, day } = getKoreaDateParts(date);
+  const mmdd = `${month}-${day}`;
+  const yyyymmdd = `${year}-${mmdd}`;
   
   return HOLIDAYS.includes(mmdd) || HOLIDAYS.includes(yyyymmdd);
 }
 
-module.exports = { isHoliday };
+function isWeekend(date = new Date()) {
+  const { weekday } = getKoreaDateParts(date);
+  return weekday === 'Sat' || weekday === 'Sun';
+}
+
+function isBriefingDay(date = new Date()) {
+  return !isWeekend(date) && !isHoliday(date);
+}
+
+function getNoBriefingReason(date = new Date()) {
+  if (isWeekend(date)) return '주말';
+  if (isHoliday(date)) return '공휴일';
+  return null;
+}
+
+module.exports = { getKoreaDateParts, getNoBriefingReason, isBriefingDay, isHoliday, isWeekend };
