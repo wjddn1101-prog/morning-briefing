@@ -2,10 +2,46 @@ const axios = require('axios');
 
 const TMAP_APP_KEY = process.env.TMAP_APP_KEY;
 const TMAP_TIMEOUT_MS = Number(process.env.TMAP_TIMEOUT_MS || 10000);
+const DEFAULT_ORIGIN_ADDRESS = '부산광역시 부산진구 동평로 176';
+const DEFAULT_DEST_ADDRESS = '경남 김해시 경원로 73번길 15';
+const DEFAULT_COORDINATES = {
+  ORIGIN: { lon: 129.049823, lat: 35.166054 },
+  DEST: { lon: 128.868144, lat: 35.23835 },
+};
 
 const tmapClient = axios.create({
   timeout: TMAP_TIMEOUT_MS,
 });
+
+function parseCoordinate(prefix) {
+  const lonValue = process.env[`${prefix}_LON`];
+  const latValue = process.env[`${prefix}_LAT`];
+
+  if (!lonValue || !latValue) return null;
+
+  const lon = Number(lonValue);
+  const lat = Number(latValue);
+
+  if (!Number.isFinite(lon) || !Number.isFinite(lat)) return null;
+  return { lon, lat };
+}
+
+function getConfiguredAddress(prefix, fallback) {
+  return process.env[`${prefix}_ADDRESS`] || fallback;
+}
+
+async function resolveRoutePoint(address, prefix, fallbackAddress) {
+  const configuredAddress = getConfiguredAddress(prefix, fallbackAddress);
+  const configuredCoordinate =
+    parseCoordinate(prefix) ||
+    (address === fallbackAddress ? DEFAULT_COORDINATES[prefix] : null);
+
+  if (configuredCoordinate && address === configuredAddress) {
+    return configuredCoordinate;
+  }
+
+  return geocode(address);
+}
 
 // T-map 지오코딩 (주소 → 좌표)
 async function geocode(address) {
@@ -39,8 +75,8 @@ async function getRoute(originAddr, destAddr) {
   if (!TMAP_APP_KEY) throw new Error('TMAP_APP_KEY가 설정되지 않았습니다.');
 
   const [origin, dest] = await Promise.all([
-    geocode(originAddr),
-    geocode(destAddr),
+    resolveRoutePoint(originAddr, 'ORIGIN', DEFAULT_ORIGIN_ADDRESS),
+    resolveRoutePoint(destAddr, 'DEST', DEFAULT_DEST_ADDRESS),
   ]);
 
   const res = await tmapClient.post('https://apis.openapi.sk.com/tmap/routes?version=1&format=json', {
